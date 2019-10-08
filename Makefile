@@ -26,7 +26,7 @@
 # Makefile for virtual_oss
 #
 
-.PATH: . backend_oss backend_bt backend_null equalizer
+.PATH: . backend_oss backend_bt backend_null backend_rtp equalizer
 
 VERSION=1.2.5
 PROG=virtual_oss
@@ -49,7 +49,8 @@ virtual_mul.c \
 virtual_oss.c \
 virtual_ring.c \
 backend_oss.c \
-backend_null.c
+backend_null.c \
+backend_rtp.c
 
 .if defined(HAVE_BLUETOOTH)
 SRCS += backend_bt.c avdtp.c sbc_encode.c

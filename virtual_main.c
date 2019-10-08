@@ -1610,6 +1610,11 @@ voss_tx_backend_refresh(void)
 	} else if (strstr(voss_dsp_tx_device, "/dev/bluetooth/") == voss_dsp_tx_device) {
 		voss_tx_backend = &voss_backend_bt_play;
 #endif
+#define HAVE_RTP
+#ifdef HAVE_RTP
+	} else if (strstr(voss_dsp_tx_device, "rtp://") == voss_dsp_tx_device) {
+		voss_tx_backend = &voss_backend_rtp_play;
+#endif
 	} else {
 		voss_tx_backend = &voss_backend_oss_play;
 	}
