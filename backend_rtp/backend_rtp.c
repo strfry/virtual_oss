@@ -30,8 +30,6 @@ rtp_close(struct voss_backend *pbe)
 {
 }
 
-int sock = 0;
-
 static int
 rtp_open(struct voss_backend *pbe, const char *devname,
     int samplerate, int bufsize, int *pchannels, int *pformat)
@@ -41,36 +39,34 @@ rtp_open(struct voss_backend *pbe, const char *devname,
    char message[1050];
 
    /* set up socket */
-   sock = socket(AF_INET, SOCK_DGRAM, 0);
-   if (sock < 0) {
+   pbe->fd = socket(AF_INET, SOCK_DGRAM, 0);
+   if (pbe->fd < 0) {
      perror("socket");
      exit(1);
    }
 
    unsigned char loop = 1;
-   setsockopt(sock, IPPROTO_IP,
+   setsockopt(pbe->fd, IPPROTO_IP,
 		 IP_MULTICAST_LOOP,
 		 &loop,
 		 sizeof(loop));
 
-   bzero((char *)&addr, sizeof(addr));
-   addr.sin_family = AF_INET;
-   addr.sin_addr.s_addr = 0;
-   addr.sin_port = 0;
-   addrlen = sizeof(addr);
-   bind(sock, (struct sockaddr*)&addr, addrlen);
-   
-   bzero((char *)&addr, sizeof(addr));
-   addr.sin_family = AF_INET;
-   addr.sin_addr.s_addr = inet_addr(EXAMPLE_GROUP);
-   addr.sin_port = htons(12077);
-   addrlen = sizeof(addr);
+    bzero((char *)&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = 0;
+    addr.sin_port = 0;
+    addrlen = sizeof(addr);
+    bind(pbe->fd, (struct sockaddr*)&addr, addrlen);
 
-   connect(sock, (struct sockaddr*)&addr, addrlen);
+    bzero((char *)&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(EXAMPLE_GROUP);
+    addr.sin_port = htons(12077);
+    addrlen = sizeof(addr);
+
+    connect(pbe->fd, (struct sockaddr*)&addr, addrlen);
 
 
-
-    
 	int value[3];
 	int i;
 
@@ -142,7 +138,7 @@ rtp_play_transfer(struct voss_backend *pbe, void *ptr, int len)
     timestamp += len;
 
     
-	return send(sock, ptr, 1024, 0);
+	return send(pbe->fd, ptr, 1024, 0);
 }
 
 static void
