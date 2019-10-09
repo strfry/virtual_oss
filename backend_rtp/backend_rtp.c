@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <err.h>
 #include <time.h>
 
@@ -21,13 +21,34 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-//#define EXAMPLE_PORT 9875
-//#define EXAMPLE_GROUP "sap.mcast.net"
-#define EXAMPLE_GROUP "224.0.0.56"
+
+#define SAP_MULTICAST_GROUP "sap.mcast.net"
+#define SAP_MULTICAST_PORT 9875
+
+//#define PULSEAUDIO_MULTICAST_GROUP "224.0.0.56"
+#define PULSEAUDIO_MULTICAST_GROUP "224.2.127.254"
+
+#define MAGIC_RTP_PORT  12077
+
+
+const char* simple_sdp = 
+"v=0\n"
+"o=pulse 3779552618 0 IN IP4 172.16.42.2\n"
+"s=VirtualOSS RTP Stream on thor.strfry.org\n"
+"c=IN IP4 224.0.0.56\n"
+"t=3779552618 0\n"
+"a=recvonly\n"
+"m=audio 12077 RTP/AVP 10\n"
+"a=rtpmap:10 L16/44100/2\n"
+"a=type:broadcast\n"
+;
+
+uint16_t rtp_port = MAGIC_RTP_PORT;
 
 static void
 rtp_close(struct voss_backend *pbe)
 {
+    close(pbe->fd);
 }
 
 static int
@@ -60,13 +81,24 @@ rtp_open(struct voss_backend *pbe, const char *devname,
 
     bzero((char *)&addr, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(EXAMPLE_GROUP);
-    addr.sin_port = htons(12077);
+    addr.sin_addr.s_addr = inet_addr(PULSEAUDIO_MULTICAST_GROUP);
+    addr.sin_port = htons(SAP_MULTICAST_PORT);
+    addrlen = sizeof(addr);
+
+
+    connect(pbe->fd, (struct sockaddr*)&addr, addrlen);
+    send_sap(pbe->fd, simple_sdp, 0);
+    
+    bzero((char *)&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(PULSEAUDIO_MULTICAST_GROUP);
+    addr.sin_port = htons(rtp_port);
     addrlen = sizeof(addr);
 
     connect(pbe->fd, (struct sockaddr*)&addr, addrlen);
 
 
+    // old backend_null stuff
 	int value[3];
 	int i;
 
@@ -90,11 +122,13 @@ uint32_t ssrc = 3779552618U;
 static int
 rtp_play_transfer(struct voss_backend *pbe, void *ptr, int len)
 {
+    uint8_t* rtp_header8 = ptr;
+    uint16_t* rtp_header16 = ptr;
     uint32_t* rtp_header32 = ptr;
 
-    uint8_t* rtp_header8 = ptr;
+    int samples = len / sizeof(int16_t) / 2/*->channels*/;
+    //timestamp += samples;
     
-    uint16_t* rtp_header16 = ptr;
     rtp_header16[1] = seqnum++;
 
     rtp_header8[0] = 2 << 6;
@@ -107,8 +141,7 @@ rtp_play_transfer(struct voss_backend *pbe, void *ptr, int len)
 
     timestamp += len;
 
-    
-	return send(pbe->fd, ptr, 1024, 0);
+    return send(pbe->fd, ptr, 1024, 0);
 }
 
 static void

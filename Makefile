@@ -50,7 +50,8 @@ virtual_oss.c \
 virtual_ring.c \
 backend_oss.c \
 backend_null.c \
-backend_rtp.c
+backend_rtp.c \
+sap.c
 
 .if defined(HAVE_BLUETOOTH)
 SRCS += backend_bt.c avdtp.c sbc_encode.c
