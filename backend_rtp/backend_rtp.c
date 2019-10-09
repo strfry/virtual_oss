@@ -83,39 +83,9 @@ rtp_open(struct voss_backend *pbe, const char *devname,
 	return (-1);
 }
 
-static void
-rtp_wait(void)
-{
-	struct timespec ts;
-	uint64_t delay;
-	uint64_t nsec;
-
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-
-	nsec = ((unsigned)ts.tv_sec) * 1000000000ULL + ts.tv_nsec;
-
-	delay = voss_dsp_samples;
-	delay *= 1000000000ULL;
-	delay /= voss_dsp_sample_rate;
-
-	usleep((delay - (nsec % delay)) / 1000);
-}
-
-static int
-rtp_rec_transfer(struct voss_backend *pbe, void *ptr, int len)
-{
-
-	if (voss_has_synchronization == 0)
-		rtp_wait();
-	memset(ptr, 0, len);
-	return (len);
-}
-
-
 uint32_t timestamp = 0;
 uint16_t seqnum = 0;
 uint32_t ssrc = 3779552618U;
-    
 
 static int
 rtp_play_transfer(struct voss_backend *pbe, void *ptr, int len)
@@ -146,13 +116,6 @@ rtp_delay(struct voss_backend *pbe, int *pdelay)
 {
 	*pdelay = -1;
 }
-
-//struct voss_backend voss_backend_null_rec = {
-//	.open = null_open,
-//	.close = null_close,
-//	.transfer = null_rec_transfer,
-//	.delay = null_delay,
-//};
 
 struct voss_backend voss_backend_rtp_play = {
 	.open = rtp_open,
